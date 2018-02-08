@@ -20,14 +20,14 @@ func LoadPrivateKeyFromPEM(path string) (*rsa.PrivateKey, error) {
 }
 
 // LoadPublicKeyFromPEM returns a parsed private key structure.
-func LoadPublicKeyFromPEM(path string) (*rsa.PublicKey, error) {
+func LoadPublicKeyFromPEM(path string) (interface{}, error) {
 	keypem, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
 	block, _ := pem.Decode(keypem)
-	return x509.ParsePKCS1PublicKey(block.Bytes)
+	return x509.ParsePKIXPublicKey(block.Bytes)
 }
 
 // LoadCertFromPEM returns the raw bytes of a certificate.

@@ -23,7 +23,7 @@ func NewTemplate() *x509.Certificate {
 		BasicConstraintsValid:       false,
 		DNSNames:                    nil,
 		ExcludedDNSDomains:          nil,
-		ExtKeyUsage:                 []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		ExtKeyUsage:                 []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		IsCA:                        false,
 		KeyUsage:                    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageDataEncipherment | x509.KeyUsageKeyAgreement,
 		MaxPathLen:                  0,

@@ -2,80 +2,87 @@
 
 Quick certificate generation and loading.
 
+## Install
+
+go get -u github.com/Urethramancer/certcut
+
 ## Why
 
 I needed simpler, automated generation of self-signed server and client certificates for various projects, both gRPC client certificate authentication and general web servers.
 
 ## How
 
-The functions should be fairly self-explanatory, but here's a quick overview.
-
-### Install
-
-go get -u github.com/Urethramancer/certcut
-
-### Keys
-
-To generate a new 4096-bit key:
+Example of generating a server certificate:
 
 ```go
-key,err := certcut.NewKey(4096)
-...
-```
-
-A pointer to an rsa.PrivateKey is returned.
-
-- Export the private and public keys to PEM with `PrivateKeyPEM()` and `PublicKeyPEM()`
-- Load them with `LoadPrivateKeyFromPEM()` and `LoadPublicKeyFromPEM()`.
-
-### Certificates
-
-Generate a new certificate authority:
-
-```go
-subject := pkix.Name{
-    CommonName:   "miskatonic.edu",
-    Country:      []string{"AQ"},
-    Organization: []string{"MU"},
+// Create a server key
+key, err := certcut.NewKey(4096) // 2048 is the default if you supply anything less
+if err != nil {
+	return err
 }
-bytes,err := NewCA(key, subject)
-...
+// Get the PEM with PrivateKeyPEM()
+// Once saved, you can load it with LoadPrivateKeyFromPEM()
+
+// Create a certificate authority (server certificate)
+b, err := certcut.NewCA(key, "MiskatonicU")
+if err != nil {
+	return err
+}
+// Get the PEM with CertPEM()
+// Load it again with LoadCertFromPEM()
+
+// Create a certificate revocation list
+crl, err := certcut.NewCRL(key, b, nil) // Supply []pkix.RevokedCertificate as the last argument
+if err != nil {
+	return err
+}
+// Get the PEM with CRLPEM()
+// Load it with LoadCRLFromPEM()
+
 ```
 
-The subject is a pkix.Name structure.
+Note that this package only cares about the Common Name for certificates etc., as it's intended for internal use and not to generate certificates/signing requests for a public CA.
 
-Generate a new client certificate:
-
+Signing host (client) certificates:
 ```go
-...
-bytes,err := NewCA(key, subject)
-...
-````
+// Continuing from the above example, we generate the key and cert for a client.
 
-- Export it to PEM with `CertPEM()`
-- Load it with `LoadCertFromPEM()`
+// Create a client key
+clientkey, err := certcut.NewKey(4096)
+if err != nil {
+	return err
+}
+// Get the PEM with PrivateKeyPEM()
 
-### Certificate revocation lists
+cn := "WDyer"
+// Generate a certificate signing request
+csrbuf, err := certcut.NewCSR(clientkey, cn)
+if err != nil {
+	return err
+}
+// It's not strictly necessary to store these, especially for internal use,
+// but you are free to use CSRPEM() if you need it. A corresponding
+// LoadCSRFromPem() function is also available.
 
-Create it like this:
+csr, err := x509.ParseCertificateRequest(csrbuf)
+if err != nil {
+	return err
+}
 
-```go
-list :=  []pkix.RevokedCertificate{...}
-bytes,err := NewCRL(key, cert, list)
-...
+cacrt, err := certcut.NewClientCert(serverkey, clientkey, cn, ca, csr)
+if err != nil {
+	return err
+}
 ```
 
-- Export it to PEM with `CRLPEM()`
-- Load it with `LoadCRLFromPEM()`
+### gRPC
 
-### Certificate signing request
-
-Generate it like this:
+There's a convenience function for the grpc package to load both the CA cert and the client cert at once into a TLS config:
 
 ```go
-bytes,err := NewCSR(key, cn)
+creds, err := certcut.NewClientTLSFromFiles("server.crt", "client.crt", "client.key")
 ...
+conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
 ```
 
-- Export it to PEM with `CSRPEM()`
-- Load it with `LoadCSRFromPEM()`
+It's a drop-in replacement for gRPC's NewClientTLSFromFile().

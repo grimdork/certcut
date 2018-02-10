@@ -66,7 +66,7 @@ func NewSerial() (*big.Int, error) {
 }
 
 // NewCA creates a new certificate authority which further client certificates can be generated with.
-func NewCA(key *rsa.PrivateKey, subject pkix.Name) ([]byte, error) {
+func NewCA(key *rsa.PrivateKey, cn string) ([]byte, error) {
 	serial, err := NewSerial()
 	if err != nil {
 		return nil, err
@@ -76,8 +76,15 @@ func NewCA(key *rsa.PrivateKey, subject pkix.Name) ([]byte, error) {
 	tpl.BasicConstraintsValid = true
 	tpl.IsCA = true
 	tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+
 	tpl.SerialNumber = serial
-	tpl.Subject = subject
+
+	tpl.Subject = pkix.Name{
+		CommonName:   cn,
+		Country:      []string{},
+		Organization: []string{},
+	}
 
 	id, err := HashSubjectKeyID(&key.PublicKey)
 	if err != nil {
@@ -97,7 +104,7 @@ func NewCA(key *rsa.PrivateKey, subject pkix.Name) ([]byte, error) {
 }
 
 // NewClientCert makes certificates for client authentication.
-func NewClientCert(key *rsa.PrivateKey, cn string, ca []byte, csr *x509.CertificateRequest) ([]byte, error) {
+func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, ca []byte, csr *x509.CertificateRequest) ([]byte, error) {
 	serial, err := NewSerial()
 	if err != nil {
 		return nil, err
@@ -109,15 +116,8 @@ func NewClientCert(key *rsa.PrivateKey, cn string, ca []byte, csr *x509.Certific
 	}
 
 	tpl := NewTemplate()
-
-	id, err := HashSubjectKeyID(&key.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	tpl.SubjectKeyId = id
-	tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
+	tpl.BasicConstraintsValid = true
+	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	tpl.SerialNumber = serial
 	tpl.NotBefore = auth.NotBefore
 	tpl.NotAfter = auth.NotAfter
@@ -128,7 +128,14 @@ func NewClientCert(key *rsa.PrivateKey, cn string, ca []byte, csr *x509.Certific
 		Organization: []string{},
 	}
 
-	cert, err := x509.CreateCertificate(rand.Reader, tpl, auth, csr.PublicKey, key)
+	id, err := HashSubjectKeyID(&hostkey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	tpl.SubjectKeyId = id
+	tpl.Issuer = auth.Subject
+	cert, err := x509.CreateCertificate(rand.Reader, tpl, auth, csr.PublicKey, authkey)
 
 	if err != nil {
 		return nil, err

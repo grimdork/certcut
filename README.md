@@ -4,7 +4,7 @@ Quick certificate generation and loading.
 
 ## Install
 
-go get -u github.com/Urethramancer/certcut
+go get -u github.com/grimdork/certcut
 
 ## Why
 
@@ -54,7 +54,7 @@ if err != nil {
 }
 // Get the PEM with PrivateKeyPEM()
 
-cn := "WDyer"
+cn := "Staff"
 // Generate a certificate signing request
 csrbuf, err := certcut.NewCSR(clientkey, cn)
 if err != nil {

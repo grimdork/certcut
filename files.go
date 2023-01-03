@@ -4,12 +4,12 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 )
 
 // LoadPrivateKeyFromPEM returns a parsed private key structure.
 func LoadPrivateKeyFromPEM(path string) (*rsa.PrivateKey, error) {
-	keypem, err := ioutil.ReadFile(path)
+	keypem, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func LoadPrivateKeyFromPEM(path string) (*rsa.PrivateKey, error) {
 
 // LoadPublicKeyFromPEM returns a parsed private key structure.
 func LoadPublicKeyFromPEM(path string) (interface{}, error) {
-	keypem, err := ioutil.ReadFile(path)
+	keypem, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -30,19 +30,19 @@ func LoadPublicKeyFromPEM(path string) (interface{}, error) {
 }
 
 // LoadCertFromPEM returns the raw bytes of a certificate.
-func LoadCertFromPEM(path string) ([]byte, error) {
-	certpem, err := ioutil.ReadFile(path)
+func LoadCertFromPEM(path string) (*x509.Certificate, error) {
+	certpem, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-
 	block, _ := pem.Decode(certpem)
-	return block.Bytes, nil
+	crt, err := x509.ParseCertificate(block.Bytes)
+	return crt, err
 }
 
 // LoadCSRFromPEM returns an x509 CertificateRequest.
 func LoadCSRFromPEM(path string) (*x509.CertificateRequest, error) {
-	csrpem, err := ioutil.ReadFile(path)
+	csrpem, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

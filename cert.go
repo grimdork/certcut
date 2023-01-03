@@ -122,24 +122,31 @@ func NewCAFromTemplate(key *rsa.PrivateKey, tpl *x509.Certificate) ([]byte, erro
 
 // NewClientCert makes certificates for client authentication.
 func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, ca *x509.Certificate, csr *x509.CertificateRequest) ([]byte, error) {
+	tpl := NewTemplate()
+	tpl.Subject = pkix.Name{
+		CommonName:   cn,
+		Country:      []string{},
+		Organization: []string{},
+	}
+
+	return NewClientCertFromTemplate(authkey, hostkey, tpl, ca, csr)
+}
+
+// NewClientCertFromTemplate makes certificates for client authentication from a template for more control.
+// The minimum field required is CommonName. MaxPathLenZero is set to false to indicate it's a client certificate.
+// A serial number will be generated, and empty dates will be filled in with the same defaults as NewClientCert.
+func NewClientCertFromTemplate(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, tpl *x509.Certificate, ca *x509.Certificate, csr *x509.CertificateRequest) ([]byte, error) {
 	serial, err := NewSerial()
 	if err != nil {
 		return nil, err
 	}
 
-	tpl := NewTemplate()
 	tpl.BasicConstraintsValid = true
 	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	tpl.SerialNumber = serial
 	tpl.NotBefore = ca.NotBefore
 	tpl.NotAfter = ca.NotAfter
 	tpl.MaxPathLenZero = false
-
-	tpl.Subject = pkix.Name{
-		CommonName:   cn,
-		Country:      []string{},
-		Organization: []string{},
-	}
 
 	id, err := HashSubjectKeyID(&hostkey.PublicKey)
 	if err != nil {
@@ -149,12 +156,7 @@ func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, 
 	tpl.SubjectKeyId = id
 	tpl.Issuer = ca.Subject
 	cert, err := x509.CreateCertificate(rand.Reader, tpl, ca, csr.PublicKey, authkey)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, nil
+	return cert, err
 }
 
 // NewRootCert creates a root certificate and its key in one function.

@@ -118,13 +118,8 @@ func NewCA(key *rsa.PrivateKey, cn string) ([]byte, error) {
 }
 
 // NewClientCert makes certificates for client authentication.
-func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, ca []byte, csr *x509.CertificateRequest) ([]byte, error) {
+func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, ca *x509.Certificate, csr *x509.CertificateRequest) ([]byte, error) {
 	serial, err := NewSerial()
-	if err != nil {
-		return nil, err
-	}
-
-	auth, err := x509.ParseCertificate(ca)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +128,9 @@ func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, 
 	tpl.BasicConstraintsValid = true
 	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	tpl.SerialNumber = serial
-	tpl.NotBefore = auth.NotBefore
-	tpl.NotAfter = auth.NotAfter
+	tpl.NotBefore = ca.NotBefore
+	tpl.NotAfter = ca.NotAfter
+	tpl.MaxPathLenZero = false
 
 	tpl.Subject = pkix.Name{
 		CommonName:   cn,
@@ -148,12 +144,32 @@ func NewClientCert(authkey *rsa.PrivateKey, hostkey *rsa.PrivateKey, cn string, 
 	}
 
 	tpl.SubjectKeyId = id
-	tpl.Issuer = auth.Subject
-	cert, err := x509.CreateCertificate(rand.Reader, tpl, auth, csr.PublicKey, authkey)
+	tpl.Issuer = ca.Subject
+	cert, err := x509.CreateCertificate(rand.Reader, tpl, ca, csr.PublicKey, authkey)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return cert, nil
+}
+
+// NewRootCert creates a root certificate and its key in one function.
+func NewRootCert(cn string, bits int) (*x509.Certificate, *rsa.PrivateKey, error) {
+	key, err := NewKey(bits)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b, err := NewCA(key, cn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, err := x509.ParseCertificate(b)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, key, nil
 }

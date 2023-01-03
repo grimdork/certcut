@@ -80,24 +80,33 @@ func NewKey(bits int) (*rsa.PrivateKey, error) {
 }
 
 // NewCA creates a new certificate authority which further client certificates can be generated with.
+// The NotAfter date is set to 10 years from now.
 func NewCA(key *rsa.PrivateKey, cn string) ([]byte, error) {
+	tpl := NewTemplate()
+	tpl.Subject = pkix.Name{
+		CommonName:   cn,
+		Country:      []string{},
+		Organization: []string{},
+	}
+
+	return NewCAFromTemplate(key, tpl)
+}
+
+// NewCAFromTemplate creates a new certificate authority from a template for more control. The minimum field required is CommonName.
+// A serial number will be generated, and empty dates will be filled in with the same defaults as NewCA.
+// Empty KeyUsage fields will be filled in with x509.KeyUsageCertSign | x509.KeyUsageCRLSign.
+func NewCAFromTemplate(key *rsa.PrivateKey, tpl *x509.Certificate) ([]byte, error) {
 	serial, err := NewSerial()
 	if err != nil {
 		return nil, err
 	}
 
-	tpl := NewTemplate()
+	tpl.SerialNumber = serial
 	tpl.BasicConstraintsValid = true
 	tpl.IsCA = true
-	tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-
-	tpl.SerialNumber = serial
-
-	tpl.Subject = pkix.Name{
-		CommonName:   cn,
-		Country:      []string{},
-		Organization: []string{},
+	if tpl.KeyUsage == 0 {
+		tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+		tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	}
 
 	id, err := HashSubjectKeyID(&key.PublicKey)
@@ -107,14 +116,8 @@ func NewCA(key *rsa.PrivateKey, cn string) ([]byte, error) {
 
 	tpl.SubjectKeyId = id
 	tpl.NotAfter = time.Now().AddDate(10, 0, 0)
-
 	buf, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &key.PublicKey, key)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return buf, err
 }
 
 // NewClientCert makes certificates for client authentication.

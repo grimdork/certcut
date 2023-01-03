@@ -38,15 +38,6 @@ func CertPEM(b []byte) []byte {
 	return pem.EncodeToMemory(block)
 }
 
-// CRLPEM converts a certificate revocation list to PEM format.
-func CRLPEM(b []byte) []byte {
-	block := &pem.Block{
-		Type:  "X509 CRL",
-		Bytes: b,
-	}
-	return pem.EncodeToMemory(block)
-}
-
 // CSRPEM converts a certificate signing request to PEM format.
 func CSRPEM(b []byte) []byte {
 	block := &pem.Block{

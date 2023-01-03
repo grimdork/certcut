@@ -3,7 +3,6 @@ package certcut
 import (
 	"crypto/rsa"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"io/ioutil"
 )
@@ -39,17 +38,6 @@ func LoadCertFromPEM(path string) ([]byte, error) {
 
 	block, _ := pem.Decode(certpem)
 	return block.Bytes, nil
-}
-
-// LoadCRLFromPEM returns an x509 CertificateList.
-func LoadCRLFromPEM(path string) (*pkix.CertificateList, error) {
-	crlpem, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(crlpem)
-	return x509.ParseCRL(block.Bytes)
 }
 
 // LoadCSRFromPEM returns an x509 CertificateRequest.

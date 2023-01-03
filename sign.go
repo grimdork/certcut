@@ -6,7 +6,7 @@ import (
 )
 
 // GetSignedCert returns a signed client certificate and key signed by the provided CA.
-// It creates a CSR and discards it after use.
+// It creates a CSR and discards it after use. The returned key is 4096 bits.
 func GetSignedCert(ca *x509.Certificate, cakey *rsa.PrivateKey, name string) ([]byte, *rsa.PrivateKey, error) {
 	key, err := NewKey(4096)
 	if err != nil {

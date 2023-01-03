@@ -31,7 +31,7 @@ Note that this package only cares about the Common Name for certificates etc., a
 
 ```go
 // Continuing from the above example, we generate the key and cert for a client.
-
+// The key will be 4096 bits.
 crt, key, err := certcut.GetSignedCert(cacert, cakey, "Staff")
 if err != nil {
 	return err

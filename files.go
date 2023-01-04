@@ -19,7 +19,7 @@ func LoadPrivateKeyFromPEM(path string) (*rsa.PrivateKey, error) {
 }
 
 // LoadPublicKeyFromPEM returns a parsed private key structure.
-func LoadPublicKeyFromPEM(path string) (interface{}, error) {
+func LoadPublicKeyFromPEM(path string) (any, error) {
 	keypem, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

@@ -37,6 +37,6 @@ func TestGetSignedCert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(string(certcut.CertPEM(crt)))
+	t.Log(string(certcut.CertPEM(crt.Raw)))
 	t.Log(string(certcut.PrivateKeyPEM(key)))
 }

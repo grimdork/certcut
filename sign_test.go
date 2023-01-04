@@ -32,11 +32,13 @@ func TestGetSignedCert(t *testing.T) {
 	}
 
 	t.Log("Generated root certificate and key.")
-	crt, key, err := certcut.GetSignedCert(cacert, cakey, "Test Client")
+	crt, _, err := certcut.GetSignedCert(cacert, cakey, "Test Client")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(string(certcut.CertPEM(crt.Raw)))
-	t.Log(string(certcut.PrivateKeyPEM(key)))
+	err = crt.CheckSignatureFrom(cacert)
+	if err != nil {
+		t.Fatalf("Signature check failed: %s", err)
+	}
 }

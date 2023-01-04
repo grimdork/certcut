@@ -104,10 +104,8 @@ func NewCAFromTemplate(key *rsa.PrivateKey, tpl *x509.Certificate) ([]byte, erro
 	tpl.SerialNumber = serial
 	tpl.BasicConstraintsValid = true
 	tpl.IsCA = true
-	if tpl.KeyUsage == 0 {
-		tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-		tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	}
+	tpl.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+	tpl.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 
 	id, err := HashSubjectKeyID(&key.PublicKey)
 	if err != nil {
